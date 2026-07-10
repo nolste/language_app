@@ -72,6 +72,7 @@ class UserCompetency(Base):
     streak: Mapped[int] = mapped_column(
         Integer,
         default=0,
+        nullable=False
     )
 
     last_reviewed_at: Mapped[datetime | None]

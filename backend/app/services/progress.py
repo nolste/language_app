@@ -29,13 +29,13 @@ def update_user_competency(
         )
         db.add(uc)
 
-    uc.attempt_count += 1
+    uc.attempt_count = (uc.attempt_count or 0) + 1
 
     if is_correct:
         uc.correct_count += 1
         uc.mastery_score += 0.05
         uc.weakness_score = max(0, uc.weakness_score - 0.05)
-        uc.streak += 1
+        uc.streak = (uc.streak or 0) + 1
     else:
         uc.mastery_score = max(0, uc.mastery_score - 0.03)
         uc.weakness_score += 0.07

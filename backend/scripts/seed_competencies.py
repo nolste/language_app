@@ -1,158 +1,81 @@
 import uuid
-
-from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
 from app.db.models.competency import Competency
 
 
 COMPETENCIES = [
-    # Root
-    {
-        "slug": "grammar",
-        "name": "Grammar",
-        "category": "grammar",
-        "parent_slug": None,
-        "difficulty_level": 1,
-        "recommended_order": 1,
-    },
+    # CORE GRAMMAR
+    ("definite_indefinite_articles", "Definite/Indefinite Articles", "grammar", 2, 1),
+    ("noun_gender_patterns", "Noun Gender Patterns", "grammar", 2, 2),
+    ("plural_formation_irregular", "Irregular Plural Formation", "grammar", 2, 3),
+    ("adjective_noun_agreement", "Adjective-Noun Agreement", "grammar", 2, 4),
+    ("quantifiers_muito_pouco_demais", "Quantifiers", "grammar", 2, 5),
 
-    # Verb tenses
-    {
-        "slug": "verb_tenses",
-        "name": "Verb Tenses",
-        "category": "verb_tense",
-        "parent_slug": "grammar",
-        "difficulty_level": 1,
-        "recommended_order": 2,
-    },
-    {
-        "slug": "present_tense",
-        "name": "Present Tense",
-        "category": "verb_tense",
-        "parent_slug": "verb_tenses",
-        "difficulty_level": 1,
-        "recommended_order": 3,
-    },
-    {
-        "slug": "preterito_perfeito",
-        "name": "Pretérito Perfeito",
-        "category": "verb_tense",
-        "parent_slug": "verb_tenses",
-        "difficulty_level": 2,
-        "recommended_order": 4,
-    },
-    {
-        "slug": "preterito_imperfeito",
-        "name": "Pretérito Imperfeito",
-        "category": "verb_tense",
-        "parent_slug": "verb_tenses",
-        "difficulty_level": 2,
-        "recommended_order": 5,
-    },
-    {
-        "slug": "perfeito_vs_imperfeito",
-        "name": "Perfeito vs Imperfeito",
-        "category": "verb_tense",
-        "parent_slug": "verb_tenses",
-        "difficulty_level": 3,
-        "recommended_order": 6,
-    },
-    {
-        "slug": "subjunctive_present",
-        "name": "Present Subjunctive",
-        "category": "verb_tense",
-        "parent_slug": "verb_tenses",
-        "difficulty_level": 4,
-        "recommended_order": 7,
-    },
+    # PRONOUNS
+    ("object_pronouns_direct_indirect",
+     "Direct & Indirect Object Pronouns", "grammar", 3, 1),
+    ("reflexive_verbs", "Reflexive Verbs", "grammar", 3, 2),
 
-    # Core grammar
-    {
-        "slug": "ser_vs_estar",
-        "name": "Ser vs Estar",
-        "category": "grammar",
-        "parent_slug": "grammar",
-        "difficulty_level": 2,
-        "recommended_order": 8,
-    },
-    {
-        "slug": "por_vs_para",
-        "name": "Por vs Para",
-        "category": "grammar",
-        "parent_slug": "grammar",
-        "difficulty_level": 3,
-        "recommended_order": 9,
-    },
-    {
-        "slug": "gender_agreement",
-        "name": "Gender Agreement",
-        "category": "grammar",
-        "parent_slug": "grammar",
-        "difficulty_level": 2,
-        "recommended_order": 10,
-    },
-    {
-        "slug": "natural_phrasing",
-        "name": "Natural Phrasing",
-        "category": "writing",
-        "parent_slug": "grammar",
-        "difficulty_level": 4,
-        "recommended_order": 11,
-    },
+    # PREPOSITIONS
+    ("preposition_de_usage", "Preposition De Usage", "grammar", 3, 3),
+    ("preposition_em_vs_a", "Preposition Em vs A", "grammar", 3, 4),
+    ("preposition_com_sem_emphasized_meaning",
+     "Prepositions Com vs Sem", "grammar", 3, 5),
+
+    # VERB TENSES
+    ("future_do_present", "Future do Presente", "verb_tense", 3, 1),
+    ("future_do_past", "Future do Passado", "verb_tense", 3, 2),
+    ("subjunctive_imperfect", "Subjunctive Imperfect", "verb_tense", 4, 3),
+    ("subjunctive_future", "Subjunctive Future", "verb_tense", 4, 4),
+
+    # SYNTAX
+    ("relative_clauses", "Relative Clauses", "grammar", 3, 6),
+    ("negation_structures", "Negation Structures", "grammar", 2, 7),
+    ("question_formation_inversion", "Question Formation & Inversion", "grammar", 2, 8),
+
+    # USAGE DISTINCTIONS
+    ("haver_vs_ter_existential", "Haver vs Ter", "grammar", 3, 9),
+    ("saber_vs_conhecer", "Saber vs Conhecer", "grammar", 3, 10),
+    ("levar_trazer", "Levar vs Trazer", "grammar", 3, 11),
 ]
 
 
 def seed():
-    db = SessionLocal()
+    db: Session = SessionLocal()
 
-    try:
-        competency_map = {}
+    existing = {
+        row[0]
+        for row in db.query(Competency.slug).all()
+    }
 
-        for item in COMPETENCIES:
-            existing = db.scalar(
-                select(Competency).where(
-                    Competency.slug == item["slug"]
-                )
-            )
+    inserted = 0
 
-            if existing:
-                competency_map[item["slug"]] = existing
-                continue
+    for slug, name, category, difficulty_level, order in COMPETENCIES:
+        if slug in existing:
+            continue
 
-            competency = Competency(
-                id=uuid.uuid4(),
-                slug=item["slug"],
-                name=item["name"],
-                category=item["category"],
-                difficulty_level=item["difficulty_level"],
-                recommended_order=item[
-                    "recommended_order"
-                ],
-            )
+        competency = Competency(
+            id=uuid.uuid4(),
+            slug=slug,
+            name=name,
+            category=category,
+            description=None,
+            parent_id=None,
+            difficulty_level=difficulty_level,
+            recommended_order=order,
+            is_active=True,
+            metadata_json={},
+        )
 
-            db.add(competency)
-            db.flush()
+        db.add(competency)
+        inserted += 1
 
-            competency_map[item["slug"]] = competency
+    db.commit()
+    db.close()
 
-        for item in COMPETENCIES:
-            if item["parent_slug"]:
-                competency = competency_map[
-                    item["slug"]
-                ]
-                parent = competency_map[
-                    item["parent_slug"]
-                ]
-
-                competency.parent_id = parent.id
-
-        db.commit()
-
-        print("Seed complete")
-
-    finally:
-        db.close()
+    print(f"Seed complete. Inserted {inserted} competencies.")
 
 
 if __name__ == "__main__":
